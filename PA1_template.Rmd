@@ -8,18 +8,112 @@ output:
 
 ## Loading and preprocessing the data
 
+```{r load, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(lattice)
 
+
+dat <- read.csv("activity.csv", na.strings = "NA", stringsAsFactors = FALSE)
+
+
+```
 
 ## What is mean total number of steps taken per day?
 
+This is calculated by first calculating the total steps taken for each day and storing it in a new data frame. The total steps are then plotted in a histogram to show the distribution, using 15 bins. 
 
+```{r}
 
+totdat <- dat %>% group_by(date) %>% summarize(total_steps = sum(steps))
+
+hist(totdat$total_steps, breaks = 15)
+
+```
+
+The mean and median are then calculated on the total steps per day column, using the option to remove NA entries.
+
+```{r}
+
+mean(totdat$total_steps, na.rm = TRUE)
+
+median(totdat$total_steps, na.rm = TRUE)
+
+```
 ## What is the average daily activity pattern?
 
+Calculate average steps per interval over all days and plot the results.
 
+```{r}
+dat %>% 
+        group_by(interval) %>%
+        summarize(avg_steps = mean(steps, na.rm = TRUE)) %>%
+        ggplot(aes(interval, avg_steps)) +
+        geom_line() +
+        labs(x = "Interval", y = "Average Steps", title = "Average Number of Steps per 5 min over 24H")
+
+```
 
 ## Imputing missing values
 
+Count the number of missing values for measured steps.
 
+```{r}
+
+sum(is.na(dat$steps))
+
+```
+
+An impute strategy of replacing missing values with the mean number of steps for that particular interval is used. Consideration was made to use mean number of steps for a particular day, but some days didn't have any valid observations and the mean was thus calculated to NaN for those specific days.
+
+```{r}
+
+means <- tapply(dat$steps, dat$interval, mean, na.rm=TRUE)
+dat$steps[is.na(dat$steps)] <- means[match(dat$interval[is.na(dat$steps)], sort(unique(dat$interval)))]
+
+
+```
+
+Again, compute the total steps for each day and plot it to a histogram, but now using the data frame with imputed values instead of removing observations.
+
+```{r}
+
+totdat <- dat %>% group_by(date) %>% summarize(total_steps = sum(steps))
+
+hist(totdat$total_steps, breaks = 15)
+
+```
+
+Calculate mean and median steps per day for the data frame with imputed values.
+
+```{r}
+
+mean(totdat$total_steps, na.rm = TRUE)
+
+median(totdat$total_steps, na.rm = TRUE)
+
+```
+One can now see that the values have changed from before and are now actually the same.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+In order to compare activity levels between weekdays and weekends, we must first extract which days are weekdays and which are weekends. This is done below and the results are stored in a new column called 'day_of_week'. We then compute the average number of steps per interval for both groups. 
+
+```{r}
+
+daydat <- mutate(dat, day_of_week = wday(date) %in% 2:6)
+
+daydat <- mutate(daydat, day_of_week = as.factor(if_else(day_of_week, "weekday", "weekend")))
+
+totdaydat <- daydat %>% group_by(day_of_week,interval) %>% summarize(avg_steps = mean(steps, na.rm = TRUE))
+
+```
+
+Now since we have a factor column, we can plot this using the lattice package
+
+```{r}
+
+xyplot(avg_steps ~ interval | day_of_week, data = totdaydat, type = "l", layout = c(1,2), xlab = "Interval", ylab = "Number of steps")
+
+```
