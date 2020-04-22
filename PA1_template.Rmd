@@ -28,7 +28,7 @@ This is calculated by first calculating the total steps taken for each day and s
 
 totdat <- dat %>% group_by(date) %>% summarize(total_steps = sum(steps))
 
-hist(totdat$total_steps, breaks = 15)
+hist(totdat$total_steps, breaks = 15, xlab = "Total steps", main = "Histogram over total steps for each day")
 
 ```
 
@@ -46,15 +46,25 @@ median(totdat$total_steps, na.rm = TRUE)
 Calculate average steps per interval over all days and plot the results.
 
 ```{r}
+
 dat %>% 
         group_by(interval) %>%
         summarize(avg_steps = mean(steps, na.rm = TRUE)) %>%
         ggplot(aes(interval, avg_steps)) +
         geom_line() +
-        labs(x = "Interval", y = "Average Steps", title = "Average Number of Steps per 5 min over 24H")
+        labs(x = "Interval", y = "Number of steps", title = "Average number of steps per 5 min over 24H")
 
 ```
 
+The 5 minute interval, which on average across all the days in the dataset, contains the maximum number of steps is calculated.
+
+```{r}
+
+avgdat <- dat %>% group_by(interval) %>% summarize(avg_steps = mean(steps))
+
+avgdat$interval[which.max(avgdat$avg_steps)]
+
+```
 ## Imputing missing values
 
 Count the number of missing values for measured steps.
@@ -81,7 +91,7 @@ Again, compute the total steps for each day and plot it to a histogram, but now 
 
 totdat <- dat %>% group_by(date) %>% summarize(total_steps = sum(steps))
 
-hist(totdat$total_steps, breaks = 15)
+hist(totdat$total_steps, breaks = 15, xlab = "Total steps", main = "Histogram over total steps for each day")
 
 ```
 
