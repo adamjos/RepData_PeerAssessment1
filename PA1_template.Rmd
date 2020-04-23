@@ -8,12 +8,13 @@ output:
 
 ## Loading and preprocessing the data
 
+Start by loading the required packages and the data itself.
+
 ```{r load, message=FALSE, warning=FALSE}
 library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(lattice)
-
 
 dat <- read.csv("activity.csv", na.strings = "NA", stringsAsFactors = FALSE)
 
@@ -28,7 +29,7 @@ This is calculated by first calculating the total steps taken for each day and s
 
 totdat <- dat %>% group_by(date) %>% summarize(total_steps = sum(steps))
 
-hist(totdat$total_steps, breaks = 15, xlab = "Total steps", main = "Histogram over total steps for each day")
+hist(totdat$total_steps, breaks = 15, xlab = "Total steps", main = "Histogram over total steps per day")
 
 ```
 
@@ -41,6 +42,9 @@ mean(totdat$total_steps, na.rm = TRUE)
 median(totdat$total_steps, na.rm = TRUE)
 
 ```
+
+One can observe that the mean and median taken steps per day over the two months is around 10765. This indicates that the subject has healthy activity levels. 
+
 ## What is the average daily activity pattern?
 
 Calculate average steps per interval over all days and plot the results.
@@ -56,15 +60,20 @@ dat %>%
 
 ```
 
+From these results we can deduct that the subject has a job which demands some moving about.
+
 The 5 minute interval, which on average across all the days in the dataset, contains the maximum number of steps is calculated.
 
 ```{r}
 
-avgdat <- dat %>% group_by(interval) %>% summarize(avg_steps = mean(steps))
+avgdat <- dat %>% group_by(interval) %>% summarize(avg_steps = mean(steps, na.rm = TRUE))
 
 avgdat$interval[which.max(avgdat$avg_steps)]
 
 ```
+
+From the reulting time series plot together with this result we see that the subject has an increased activity level around 08:35 o'clock over the span of the two months. This could correspond to a morning commute to work, or a routine to run in the morning for some days of the week.
+
 ## Imputing missing values
 
 Count the number of missing values for measured steps.
@@ -80,6 +89,7 @@ An impute strategy of replacing missing values with the mean number of steps for
 ```{r}
 
 means <- tapply(dat$steps, dat$interval, mean, na.rm=TRUE)
+
 dat$steps[is.na(dat$steps)] <- means[match(dat$interval[is.na(dat$steps)], sort(unique(dat$interval)))]
 
 
@@ -91,7 +101,7 @@ Again, compute the total steps for each day and plot it to a histogram, but now 
 
 totdat <- dat %>% group_by(date) %>% summarize(total_steps = sum(steps))
 
-hist(totdat$total_steps, breaks = 15, xlab = "Total steps", main = "Histogram over total steps for each day")
+hist(totdat$total_steps, breaks = 15, xlab = "Total steps", main = "Histogram over total steps per day")
 
 ```
 
@@ -104,7 +114,8 @@ mean(totdat$total_steps, na.rm = TRUE)
 median(totdat$total_steps, na.rm = TRUE)
 
 ```
-One can now see that the values have changed from before and are now actually the same.
+
+One can now see that the median has changed from before (but not much) but not the mean. The mean and median are now actually the same.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
@@ -112,18 +123,20 @@ In order to compare activity levels between weekdays and weekends, we must first
 
 ```{r}
 
-daydat <- mutate(dat, day_of_week = wday(date) %in% 2:6)
-
-daydat <- mutate(daydat, day_of_week = as.factor(if_else(day_of_week, "weekday", "weekend")))
+daydat <- mutate(dat, day_of_week = as.factor(if_else((wday(date) %in% 2:6), "weekday", "weekend")))
 
 totdaydat <- daydat %>% group_by(day_of_week,interval) %>% summarize(avg_steps = mean(steps, na.rm = TRUE))
 
 ```
 
-Now since we have a factor column, we can plot this using the lattice package
+Now since we have a factor column, we can plot the data in separate panels using the lattice package
 
 ```{r}
 
 xyplot(avg_steps ~ interval | day_of_week, data = totdaydat, type = "l", layout = c(1,2), xlab = "Interval", ylab = "Number of steps")
 
 ```
+
+One can observe that the overall activity is higher during the weekend, which could be related to not being at work and thus having more free time to go about. You can also observe that the peak at 08:35 o'clock is dropping during weekends, further indicating that the peak is related to the morning commute to work, or a morning run routine before work. However from looking at the data one can see that the peaks are not consistent over all weekdays, thus indicating that it is not related to a regular daily commute. The morning peaks range in a level of around 700-800 steps which indicates that the subject is actually running. Peaks at 600 or sligtly below indicates that the subject is walking.  
+
+
